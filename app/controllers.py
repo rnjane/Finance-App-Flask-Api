@@ -1,26 +1,24 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import jsonify, json
-import simplejson
 import datetime
 import jwt
 
-
 from app import db, app
 from app.models import User, Budget, MiniBudget
-
+from app.schemas import UserSchema, BudgetSchema, MiniBudgetSchema
 
 class UserController():
     def register(self, username, email, password1, password2):
         if password1 != password2:
             return "Passwords do not match"
-        user = User.query.filter_by(username = username).first()
+        user = User.query.filter_by(username = username, email = email).first()
         if user:
             return "Username and/or email in use. Use a differnet username and/or email"
         password_hash = generate_password_hash(password1, method='sha256')
         new_user = User(username = username, email = email, password = password_hash)
         db.session.add(new_user)
         db.session.commit()
-        return User.query.filter_by(username = username, email = email).first().username
+        return UserSchema().dump(User.query.filter_by(username = username, email = email).first())
 
     def login(self, username, password):
         user = User.query.filter_by(username = username).first()
@@ -43,21 +41,18 @@ class BudgetController():
             new_budget = Budget(owner_id = user_id, name = budget_name, amount = budget_amount)
             db.session.add(new_budget)
             db.session.commit()
-            response = {}
-            response['name'] = new_budget.name
-            response['amount'] = new_budget.amount
-            return json.dumps({'New Budget': response})
+            return BudgetSchema().dump(Budget.query.filter_by(owner_id = user_id, name = budget_name).first())
 
     def view_all_budgets(self, user_id):
         budgets = Budget.query.filter_by(owner_id = user_id).all()
         if budgets:
             output = []
-            response = {}
             for budget in budgets:
+                response = {}
                 response['name'] = budget.name
                 response['amount'] = budget.amount
                 output.append(response)
-            return json.dumps({'Budget' : output})
+            return BudgetSchema().dump(output, many=True)
         else:
             return "You have no budgets"
 
@@ -67,22 +62,18 @@ class BudgetController():
             response = {}
             response['name'] = budget.name
             response['amount'] = budget.amount
-            return json.dumps({'Budget' : response})
+            return BudgetSchema().dump(response)
         else:
             return "There is no budget with this ID for you"
 
     def edit_budget(self, user_id, budget_id, new_name, new_amount):
         budget = Budget.query.filter_by(owner_id = user_id, id = budget_id).first()
         if budget:
-            if new_name:
-                budget.name = new_name
-            if new_amount:
-                budget.amount = new_amount
             db.session.commit()
             response = {}
             response['name'] = budget.name
             response['amount'] = budget.amount
-            return json.dumps({"Budget": response})
+            return MiniBudgetSchema().dump(response)
         else:
             return "There is no budget with this ID for you"
 
@@ -109,18 +100,18 @@ class MiniBudgetController():
             response = {}
             response['name'] = new_mini_budget.name
             response['amount'] = new_mini_budget.amount
-            return json.dumps({"budget": response})
+            return MiniBudgetSchema().dump(response)
 
     def view_all_mini_budgets(self, budget_id):
         mini_budgets = MiniBudget.query.filter_by(budget_id = budget_id).all()
         if mini_budgets:
-            response = {}
             mb_list = []
             for mini_budget in mini_budgets:
+                response = {}
                 response['name'] = mini_budget.name
                 response['amount'] = mini_budget.amount
                 mb_list.append(response)
-            return json.dumps({"Mini Budgets": mb_list})
+            return MiniBudgetSchema().dump(mb_list, many = True)
         else:
             return "You have no mini budgets in this budget"
 
@@ -130,22 +121,18 @@ class MiniBudgetController():
             response = {}
             response['name'] = mini_budget.name
             response['amount'] = mini_budget.amount
-            return json.dumps({"mini budget": response})
+            return MiniBudgetSchema().dump(response)
         else:
             return "There is no mini budget with this ID in the specified budget"
 
-    def edit_mini_budget(self, budget_id, mini_budget_id, new_name, new_amount):
+    def edit_mini_budget(self, budget_id, mini_budget_id, new_name = None, new_amount = None):
         mini_budget = MiniBudget.query.filter_by(budget_id = budget_id, id = mini_budget_id).first()
         if mini_budget:
-            if new_name:
-                mini_budget.name = new_name
-            if new_amount:
-                mini_budget.amount = new_amount
             db.session.commit()
             response = {}
             response['name'] = mini_budget.name
             response['amount'] = mini_budget.amount
-            return json.dumps({"Mini budget": response})
+            return MiniBudgetSchema().dump(response)
         else:
             return "There is no mini budget with this ID in the specified budget"
 
