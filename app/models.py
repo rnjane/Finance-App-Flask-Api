@@ -23,23 +23,49 @@ class User(db.Model):
 class Budget(db.Model):
     __tablename__ = "budget"
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(40), nullable=False)
-    amount = db.Column(db.Numeric, nullable=False)
-    date_created = db.Column(
-        db.DateTime, nullable=False, default=datetime.utcnow
-    )
-    # NOTE: Always a good idea to track the date something was modified
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(40), nullable = False)
+    total_income = db.Column(db.Numeric, nullable = False)
+    total_expenses = db.Column(db.Numeric, nullable = False)
+    date_created = db.Column(db.DateTime, nullable=False, default = datetime.utcnow)
     date_modified = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    mini_budgets = db.relationship('MiniBudget', backref='budget', lazy=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expenses = db.relationship('Expense', backref='budget', lazy=True)
+    income = db.relationship('Income', backref='budget', lazy=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable = False)
 
     def __repr__(self):
-        return 'Budget Name:' % self.name
+        return 'Budget Name %r' % (self.name)
+
+class Expense(db.Model):
+    __tablename__ = "expense"
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(40), nullable = False)
+    amount = db.Column(db.Numeric, nullable = False)
+    remaining_amount = db.Column(db.Numeric, nullable = False)
+    date_created = db.Column(db.DateTime, nullable=False, default = datetime.utcnow)
+    budget_id = db.Column(db.Integer, db.ForeignKey('budget.id'), nullable = False)
+    mini_expenses = db.relationship('MiniExpense', backref='expense', lazy=True)
+
+    def __repr__(self):
+        return 'Expense Name: %r' % (self.name)
 
 
-class MiniBudget(db.Model):
-    __tablename__ = "mini_budget"
+class MiniExpense(db.Model):
+    __tablename__ = "mini-expense"
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(40), nullable = False)
+    amount = db.Column(db.Numeric, nullable = False)
+    date_created = db.Column(db.DateTime, nullable=False, default = datetime.utcnow)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable = False)
+
+    def __repr__(self):
+        return 'Mini-Expense Name: %r' % (self.name)
+
+
+class Income(db.Model):
+    __tablename__ = "income"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(40), nullable=False)
@@ -52,4 +78,4 @@ class MiniBudget(db.Model):
         'budget.id'), nullable=False)
 
     def __repr__(self):
-        return 'Mini Budget Name:' % self.name
+        return 'Income Name: %r' % (self.name)
