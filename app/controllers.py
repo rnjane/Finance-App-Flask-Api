@@ -7,8 +7,8 @@ import jwt
 from sqlalchemy import or_
 
 from app import db, app
-from app.models import User, Budget, MiniBudget
-from app.schemas import UserSchema, BudgetSchema, MiniBudgetSchema
+from app.models import User, Budget, Expense, Income, MiniExpense
+from app.schemas import UserSchema, BudgetSchema, ExpenseSchema, MiniExpenseSchema, IncomeSchema
 
 
 class UserController():
@@ -46,15 +46,13 @@ class UserController():
 
 
 class BudgetController():
-    def create_budget(self, user_id, budget_name, budget_amount):
-        budget = Budget.query.filter_by(
-            owner_id=user_id, name=budget_name).first()
+    def create_budget(self, user_id, budget_name, total_income = 0, total_expenses = 0):
+        budget = Budget.query.filter_by(owner_id = user_id, name = budget_name).first()
         if budget:
             return "You are already using this budget name. Use a different" \
                 " name"
         else:
-            new_budget = Budget(
-                owner_id=user_id, name=budget_name, amount=budget_amount)
+            new_budget = Budget(owner_id = user_id, name = budget_name, total_expenses = total_expenses, total_income = total_income)
             db.session.add(new_budget)
             db.session.commit()
             return BudgetSchema().dump(new_budget)
@@ -69,16 +67,24 @@ class BudgetController():
     def view_one_budget(self, user_id, budget_id):
         budget = Budget.query.filter_by(owner_id=user_id, id=budget_id).first()
         if budget:
-            return BudgetSchema().dump(budget)
+            response = {}
+            response['name'] = budget.name
+            response['Incomes'] = budget.total_income
+            response['Expenses'] = budget.total_expenses
+            return BudgetSchema().dump(response)
         else:
             return "There is no budget with this ID for you"
 
-    def edit_budget(self, user_id, budget_id, new_name, new_amount):
-        budget = Budget.query.filter_by(owner_id=user_id, id=budget_id).first()
+    def edit_budget(self, user_id, budget_id, new_name):
+        budget = Budget.query.filter_by(owner_id = user_id, id = budget_id).first()
         if budget:
-            # NOTE: You forgot to make edits here
+            budget.name = new_name
             db.session.commit()
-            return MiniBudgetSchema().dump(budget)
+            response = {}
+            response['name'] = budget.name
+            response['Incomes'] = budget.total_income
+            response['Expenses'] = budget.total_expenses
+            return BudgetSchema().dump(response)
         else:
             return "There is no budget with this ID for you"
 
@@ -91,59 +97,200 @@ class BudgetController():
         else:
             return "There is no budget with this ID for you"
 
-
-class MiniBudgetController():
-    def create_mini_budget(self, budget_id, mini_budget_name,
-                           mini_budget_amount):
-        mini_budget = MiniBudget.query.filter_by(
-            budget_id=budget_id, name=mini_budget_name).first()
-        if mini_budget:
-            return "This name is already in use in this budget. Use a" \
-                " different name"
+ 
+class ExpenseController():
+    def create_expense(self, budget_id, expense_name, amount, remaining_amount = 0):
+        expense = Expense.query.filter_by(budget_id = budget_id, name = expense_name).first()
+        if expense:
+            return "This name is already in use in this budget. Use a different name"
         else:
-            new_mini_budget = MiniBudget(
-                budget_id=budget_id, name=mini_budget_name,
-                amount=mini_budget_amount
-            )
-            db.session.add(new_mini_budget)
+            new_expense = Expense(budget_id = budget_id, name = expense_name, amount = amount, remaining_amount = remaining_amount)
+            db.session.add(new_expense)
             db.session.commit()
-            return MiniBudgetSchema().dump(new_mini_budget)
+            response = {}
+            response['name'] = new_expense.name
+            response['budget id'] = new_expense.budget_id
+            response['Total Amount'] = new_expense.amount
+            response['Remaining Amount'] = new_expense.remaining_amount
+            return ExpenseSchema().dump(response)
 
-    def view_all_mini_budgets(self, budget_id):
-        mini_budgets = MiniBudget.query.filter_by(budget_id=budget_id).all()
-        if mini_budgets:
-            return MiniBudgetSchema(many=True).dump(mini_budgets)
+    def view_all_expenses(self, budget_id):
+        expenses = Expense.query.filter_by(budget_id = budget_id).all()
+        if expenses:
+            expenses_list = []
+            for expense in expenses:
+                response = {}
+                response['name'] = expense.name
+                response['amount'] = expense.amount
+                expenses_list.append(response)
+            return ExpenseSchema().dump(expenses_list, many = True)
         else:
             return "You have no mini budgets in this budget"
 
-    def view_one_mini_budget(self, budget_id, mini_budget_id):
-        mini_budget = MiniBudget.query.filter_by(
-            budget_id=budget_id, id=mini_budget_id).first()
-        if mini_budget:
-            return MiniBudgetSchema().dump(mini_budget)
+    def view_one_expense(self, budget_id, expense_id):
+        expense = Expense.query.filter_by(budget_id = budget_id, id = expense_id).first()
+        if expense:
+            response = {}
+            response['name'] = expense.name
+            response['amount'] = expense.amount
+            response['remaining amout'] = expense.remaining_amount
+            return ExpenseSchema().dump(response)
         else:
             return "There is no mini budget with this ID in the " \
                 "specified budget"
 
-    def edit_mini_budget(self, budget_id, mini_budget_id, new_name=None,
-                         new_amount=None):
-        mini_budget = MiniBudget.query.filter_by(
-            budget_id=budget_id, id=mini_budget_id).first()
-        if mini_budget:
-            # NOTE: No editing is performed here as well
+    def edit_expense(self, budget_id, expense_id, new_name, new_amount):
+        expense = Expense.query.filter_by(budget_id = budget_id, expense_id = expense_id).first()
+        if expense:
+            expense.name = new_name
+            expense.amount = new_amount
             db.session.commit()
-            return MiniBudgetSchema().dump(mini_budget)
+            response = {}
+            response['name'] = expense.name
+            response['amount'] = expense.amount
+            return ExpenseSchema().dump(response)
         else:
-            return "There is no mini budget with this ID in the specified" \
-                " budget"
+            return "There is no expense with this ID in the specified budget"
 
-    def delete_mini_budget(self, budget_id, mini_budget_id):
-        mini_budget = MiniBudget.query.filter_by(
-            budget_id=budget_id, id=mini_budget_id).first()
-        if mini_budget:
-            db.session.delete(mini_budget)
+    def delete_expense(self, budget_id, expense_id):
+        expense = Expense.query.filter_by(budget_id = budget_id, expense_id = expense_id).first()
+        if expense:
+            db.session.delete(expense)
             db.session.commit()
-            return "Mini budget deleted Succesfully"
+            return "Expense deleted Succesfully"
         else:
-            return "There is no mini budget with this ID in the specified" \
-                " budget"
+            return "There is no expense with this ID in the specified budget"
+
+
+class IncomeController():
+
+    """Create a new income for a certain budget"""
+    def create_income(self, budget_id, income_name, amount):
+        income = Income.query.filter_by(budget_id = budget_id, name = income_name).first()
+        if income:
+            return "This name is already in use in this budget. Use a different name"
+        else:
+            new_income = Income(budget_id = budget_id, name = income_name, amount = amount)
+            db.session.add(new_income)
+            db.session.commit()
+            response = {}
+            response['name'] = new_income.name
+            response['budget id'] = new_income.budget_id
+            response['Total Amount'] = new_income.amount
+            return IncomeSchema().dump(response)
+
+    """View all incomes in a budget"""
+    def view_all_incomes(self, budget_id):
+        incomes = Income.query.filter_by(budget_id = budget_id).all()
+        if incomes:
+            income_list = []
+            for income in incomes:
+                response = {}
+                response['name'] = income.name
+                response['amount'] = income.amount
+                income_list.append(response)
+            return IncomeSchema().dump(income_list, many = True)
+        else:
+            return "You have no incomes in this budget"
+
+    """View one income in a budget by ID"""
+    def view_one_income(self, budget_id, income_id):
+        income = Income.query.filter_by(budget_id = budget_id, id = income_id).first()
+        if income:
+            response = {}
+            response['name'] = income.name
+            response['amount'] = income.amount
+            return IncomeSchema().dump(response)
+        else:
+            return "There is no income with this ID in the specified budget"
+
+    """Update an income in a budget"""
+    def edit_income(self, budget_id, income_id, new_name, new_amount):
+        income = Income.query.filter_by(budget_id = budget_id, income_id = income_id).first()
+        if income:
+            income.name = new_name
+            income.amount = new_amount
+            db.session.commit()
+            response = {}
+            response['name'] = income.name
+            response['amount'] = income.amount
+            return IncomeSchema().dump(response)
+        else:
+            return "There is no income with this ID in the specified budget"
+
+    """Delete an income in a budget"""
+    def delete_income(self, budget_id, income_id):
+        income = Income.query.filter_by(budget_id = budget_id, income_id = income_id).first()
+        if income:
+            db.session.delete(income)
+            db.session.commit()
+            return "Income deleted Succesfully"
+        else:
+            return "There is no income with this ID in the specified budget"
+
+
+class MiniExpenseController():
+
+    """Create a mini expense of an expense"""
+    def create_mini_expense(self, expense_id, mini_expense_name, amount):
+        mini_expense = Expense.query.filter_by(expense_id = expense_id, name = mini_expense_name).first()
+        if mini_expense:
+            return "This name is already in use in this expense. Use a different name"
+        else:
+            new_mini_expense = MiniExpense(expense_id = budget_id, name = expense_name, amount = amount)
+            db.session.add(new_mini_expense)
+            db.session.commit()
+            response = {}
+            response['name'] = new_mini_expense.name
+            response['budget id'] = new_mini_expense.budget_id
+            response['Total Amount'] = new_mini_expense.amount
+            return MiniExpenseSchema().dump(response)
+
+    """View all mini expenses in an expense"""
+    def view_all_mini_expenses(self, expense_id):
+        mini_expenses = MiniExpense.query.filter_by(expense_id = expense_id).all()
+        if mini_expenses:
+            mini_expenses_list = []
+            for mini_expense in mini_expenses:
+                response = {}
+                response['name'] = mini_expense.name
+                response['amount'] = mini_expense.amount
+                mini_expenses_list.append(response)
+            return MiniExpenseSchema().dump(mini_expenses_list, many = True)
+        else:
+            return "You have no mini expenses in this expense"
+
+    """View a mini expense by its ID"""
+    def view_one_mini_expense(self, expense_id, mini_expense_id):
+        mini_expense = MiniExpense.query.filter_by(expense_id = expense_id, id = mini_expense_id).first()
+        if mini_expense:
+            response = {}
+            response['name'] = mini_expense.name
+            response['amount'] = mini_expense.amount
+            return MiniExpenseSchema().dump(response)
+        else:
+            return "There is no mini expense with this ID in the specified expense"
+
+    """Edit a mini_expense"""
+    def edit_mini_expense(self, expense_id, mini_expense_id, new_name, new_amount):
+        mini_expense = MiniExpense.query.filter_by(expense_id = expense_id, id = mini_expense_id).first()
+        if mini_expense:
+            mini_expense.name = new_name
+            mini_expense.amount = new_amount
+            db.session.commit()
+            response = {}
+            response['name'] = mini_expense.name
+            response['amount'] = mini_expense.amount
+            return MiniExpenseSchema().dump(response)
+        else:
+            return "There is no mini expense with this ID in the specified expense"
+
+    """Delete a mini expense"""
+    def delete_mini_expense(self, expense_id, mini_expense_id):
+        mini_expense = MiniExpense.query.filter_by(expense_id = expense_id, id = mini_expense_id).first()
+        if mini_expense:
+            db.session.delete(mini_expense)
+            db.session.commit()
+            return "Mini Expense deleted Succesfully"
+        else:
+            return "There is no Mini expense with this ID in the specified expense"
