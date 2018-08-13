@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, pprint
 
+
 class UserSchema(Schema):
     username = fields.String()
     email = fields.String()
