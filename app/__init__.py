@@ -15,7 +15,7 @@ app = Flask(__name__)
 # environment variables. It also has a default 'production' value
 # when it's not set in the environment.
 environment = os.getenv('FLASK_ENV', 'production')
-app.config.from_object(config.configuration[environment])
+app.config.from_object(config.configuration['development'])
 api = Api(app)
 db = SQLAlchemy(app)
 

@@ -12,7 +12,6 @@ class User(db.Model):
     date_created = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow
     )
-    date_modified = db.Column(db.DateTime, onupdate=datetime.utcnow)
     budgets = db.relationship('Budget', backref='user', lazy=True)
     # QUESTION: Why do you prefer lazy=True?
 

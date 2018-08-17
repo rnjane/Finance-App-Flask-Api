@@ -140,7 +140,7 @@ class ExpenseController():
                 "specified budget"
 
     def edit_expense(self, budget_id, expense_id, new_name, new_amount):
-        expense = Expense.query.filter_by(budget_id = budget_id, expense_id = expense_id).first()
+        expense = Expense.query.filter_by(budget_id = budget_id, id = expense_id).first()
         if expense:
             expense.name = new_name
             expense.amount = new_amount
@@ -153,7 +153,7 @@ class ExpenseController():
             return "There is no expense with this ID in the specified budget"
 
     def delete_expense(self, budget_id, expense_id):
-        expense = Expense.query.filter_by(budget_id = budget_id, expense_id = expense_id).first()
+        expense = Expense.query.filter_by(budget_id = budget_id, id = expense_id).first()
         if expense:
             db.session.delete(expense)
             db.session.commit()
@@ -233,18 +233,14 @@ class MiniExpenseController():
 
     """Create a mini expense of an expense"""
     def create_mini_expense(self, expense_id, mini_expense_name, amount):
-        mini_expense = Expense.query.filter_by(expense_id = expense_id, name = mini_expense_name).first()
+        mini_expense = MiniExpense.query.filter_by(expense_id = expense_id, name = mini_expense_name).first()
         if mini_expense:
             return "This name is already in use in this expense. Use a different name"
         else:
-            new_mini_expense = MiniExpense(expense_id = budget_id, name = expense_name, amount = amount)
+            new_mini_expense = MiniExpense(expense_id = expense_id, name = mini_expense_name, amount = amount)
             db.session.add(new_mini_expense)
             db.session.commit()
-            response = {}
-            response['name'] = new_mini_expense.name
-            response['budget id'] = new_mini_expense.budget_id
-            response['Total Amount'] = new_mini_expense.amount
-            return MiniExpenseSchema().dump(response)
+            return MiniExpenseSchema().dump(new_mini_expense)
 
     """View all mini expenses in an expense"""
     def view_all_mini_expenses(self, expense_id):

@@ -41,11 +41,10 @@ class Register(Resource):
             username=data['username'], email=data['email'],
             password1=data['password1'], password2=data['password2']
         )
-        # NOTE: The edit here could work across all the endpoints
-        # Just take not that it also involves editing the controllers a bit
         if isinstance(response, User):
-            return UserSchema().dump(new_user)
+            return UserSchema().dump(response)
         else:
+            print(response)
             return response
 
 
@@ -67,6 +66,7 @@ class Login(Resource):
 class Budgets(Resource):
     decorators = [token_required]
 
+    """Create a budget"""
     def post(self, current_user):
         data = request.get_json()
         response = budget_object.create_budget(current_user.id, data['name'])
@@ -75,6 +75,7 @@ class Budgets(Resource):
         else:
             return response
 
+    """view all budgets"""
     def get(self, current_user):
         response = budget_object.view_all_budgets(current_user.id)
         if response == "You have no budgets":
@@ -87,6 +88,7 @@ class Budgets(Resource):
 class Budget(Resource):
     decorators = [token_required]
 
+    """view one budget"""
     def get(self, current_user, budget_id):
         response = budget_object.view_one_budget(
             user_id=current_user.id, budget_id=budget_id)
@@ -95,6 +97,7 @@ class Budget(Resource):
         else:
             return response
 
+    """edit a budget"""
     def put(self, current_user, budget_id):
         data = request.get_json()
         response = budget_object.edit_budget(user_id = current_user.id, budget_id = budget_id, new_name = data['newname'])
@@ -103,6 +106,7 @@ class Budget(Resource):
         else:
             return response
 
+    """Delete a budget"""
     def delete(self, current_user, budget_id):
         response = budget_object.delete_budget(
             user_id=current_user.id, budget_id=budget_id)
@@ -115,6 +119,7 @@ class Budget(Resource):
 class Expenses(Resource):
     decorators = [token_required]
 
+    """Create an expense"""
     def post(self, current_user, budget_id):
         data = request.get_json()
         response = expense_object.create_expense(budget_id = budget_id, expense_name = data['name'], amount = data['amount'])
@@ -123,9 +128,10 @@ class Expenses(Resource):
         else:
             return response
 
+    """View all expenses"""
     def get(self, current_user, budget_id):
         response = expense_object.view_all_expenses(budget_id = budget_id)
-        if response == "You have no mini budgets in this budget":
+        if response == "You have no expenses in this budget":
             return response
         else:
             return response
@@ -211,18 +217,13 @@ class Income(Resource):
             return response
 
 
-@api.route('/<expense_id>/mini-expenses')
+@api.route('/<expense_id>/mini-expenses/')
 class MiniExpenses(Resource):
     decorators = [token_required]
 
     """Endpoint to create a new mini expense"""
     def post(self, expense_id):
-        data = request.get_json()
-        response = mini_expense_object.create_mini_expense(budget_id = budget_id, mini_expense_name = data['name'], amount = data['amount'])
-        if response == "This name is already in use in this expense. Use a different name":
-            return response
-        else:
-            return response
+        return "hello"
     
     """Endpoint to get all mini expenses in an expense"""
     def get(self, current_user, expense_id):

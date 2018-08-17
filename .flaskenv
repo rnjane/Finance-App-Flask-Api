@@ -5,7 +5,4 @@
 # I've included examples of how you'd declare these environment variables.
 
 
-SECRET_KEY='adcdefghif'  # sensitive. should not be here but in a different .env file.
 FLASK_ENV='development'
-PROD_DATABASE='postgresql://user:password@localhost:5432/db_name' # sensitive. should not be here but in a different .env file.
-DEV_DATABASE='postgresql://user:password@localhost:5432/db_name' # sensitive. should not be here but in a different .env file.
